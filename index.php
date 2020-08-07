@@ -40,7 +40,7 @@
         print "EC2 instance-id = " . $instanceid . "<br />";
       }
 	  
-      $Database   = "postalsaude.cdeoqoyifnyh.us-east-1.rds.amazonaws.com";
+      $Database   = "dbpostalsaude.cdeoqoyifnyh.us-east-1.rds.amazonaws.com";
       $DBUser     = "root";
       $DBPassword = "Cam01pos";
 
