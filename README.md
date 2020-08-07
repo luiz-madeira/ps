@@ -5,4 +5,6 @@
 Pré-requisito: 
 - Ansible Instalado na Máquina.
 - AS/SK Amazon.
+- Configurar Variáveis.
+- Criar Keypair.
  
