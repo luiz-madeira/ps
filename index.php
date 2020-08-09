@@ -1,10 +1,10 @@
 <html>
   <head>
-    <title>AWS PHP Sample</title>
+    <title>POC Postal Saude</title>
     <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
   </head>
   <body>
-    <h1>Welcome to the AWS CloudFormation PHP Sample</h1>
+    <h1>POC Postal Saude</h1>
     <p/>
     <?php
       // Print out the current data and tie
