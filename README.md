@@ -11,6 +11,7 @@ Pré-requisito:
 
 # Instalar Ansible #
 
+#/bin/bash
 yum -y update <br />
 yum -y install ansible
  
