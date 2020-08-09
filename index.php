@@ -37,7 +37,7 @@
       }
       else
       {
-        print "EC2 instance-id = " . $instanceid . "<br />";
+        print "EC2 instance-id = <b>" . $instanceid . "</b><br />";
       }
 	  
       $Database   = "dbpostalsaude.cq2g9wg0vpui.sa-east-1.rds.amazonaws.com";
