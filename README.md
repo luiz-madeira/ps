@@ -11,6 +11,6 @@ Pré-requisito:
 
 # Instalar Ansible #
 
-yum -y update
-yum -y install ansible
+yum -y update.
+yum -y install ansible.
  
