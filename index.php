@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>AWS CloudFormation PHP Sample</title>
+    <title>AWS PHP Sample</title>
     <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
   </head>
   <body>
