@@ -1,1 +1,207 @@
 
+# OBS: Criar VPC e SUBNET antes de rodar o script.
+# Criar Keypair.
+
+- hosts: localhost
+  connection: local
+  vars:
+    awsregion: us-east-1
+    awsami: ami-35917a4f #ami-35917a4f    
+    keyname: postalsaudepoc
+    vpc: vpc-0800872ab4632a0a5
+    subnetslist: [subnet-0bc006efbba36b2ee,subnet-0799020247887f296]
+    dbusername: root
+    dbpassword: Cam01pos
+    data: |
+      #!/bin/sh
+      setenforce 0
+      iptables -F
+      yum install httpd -y
+      yum install php -y
+      yum install php-mysql -y
+      yum install git -y
+      echo -e "<?php\n \$Database = \"{{ rds.instance.endpoint }}\";\n \$DBUser = \"{{ dbusername }}\";\n \$DBPassword = \"{{ dbpassword }}\";\n?>" > /var/www/html/credentials.php
+      git clone https://github.com/luiz-madeira/ps.git ps
+      cp ps/index.php /var/www/html/index.php
+      chmod 600 /var/www/html/index.php /var/www/html/credentials.php
+      chown apache:apache /var/www/html/index.php /var/www/html/credentials.php
+      systemctl start httpd
+      systemctl enable httpd
+
+  tasks:
+    - name: Creating Target Group
+      elb_target_group:
+#        aws_access_key: "{{ accessKey }}"
+#        aws_secret_key: "{{ secretKey }}"
+        region: "{{ awsregion }}"
+        name: TargetGroupPostalSaude
+        protocol: http
+        port: 80
+        vpc_id: "{{ vpc }}"
+        health_check_path: /
+        successful_response_codes: "200,250-260"
+        target_type: instance
+        #stickiness_enabled: yes
+        state: present
+      register: elbtg
+    
+    - name: Creating Security Group Load balance
+      ec2_group:
+        name: LoadbalanceSGPostalSaude
+        description: Enable HTTP access via port 80 locked down to the ELB 
+#        aws_access_key: "{{ accessKey }}"
+#        aws_secret_key: "{{ secretKey }}"
+        region: "{{ awsregion }}"
+        vpc_id: "{{ vpc }}"
+        tags:
+          Name: LoadbalanceSGPostalSaude
+        rules:
+          - proto: tcp
+            ports:
+            - 80
+            cidr_ip: 0.0.0.0/0
+#            rule_desc: allow all on port 80
+      register: elbsg
+
+    - name: Creating Application ELB
+      elb_application_lb:
+        name: ELBPostalSaude
+#        aws_access_key: "{{ accessKey }}"
+#        aws_secret_key: "{{ secretKey }}"
+        region: "{{ awsregion }}"
+        scheme: internet-facing
+        subnets: "{{ subnetslist }}"
+        security_groups: "{{ elbsg.group_id }}"
+        listeners:
+          - Protocol: HTTP # Required. The protocol for connections from clients to the load balancer (HTTP or HTTPS) (case-sensitive).
+            Port: 80 # Required. The port on which the load balancer is listening.
+            DefaultActions:
+              - Type: forward # Required. Only 'forward' is accepted at this time
+                TargetGroupName: "{{ elbtg.target_group_name }}"  # Required. The name of the target group
+        state: present
+
+    - name: Creating Application Security Group
+      ec2_group:
+        name: ApplicationSGPostalSaude
+        description: Enable HTTP access via port 80 locked down to the ELB and SSH access
+#        aws_access_key: "{{ accessKey }}"
+#        aws_secret_key: "{{ secretKey }}"
+        region: "{{ awsregion }}"
+        vpc_id: "{{ vpc }}"
+        tags:
+            Name: ApplicationSGPostalSaude
+        rules:
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+        state: present
+      register: Appsg
+
+    - name: Creating DB Security Group
+      ec2_group:
+        name: DatabaseSGPostalSaude
+        description: Open database for access
+#        aws_access_key: "{{ accessKey }}"
+#        aws_secret_key: "{{ secretKey }}"
+        region: "{{ awsregion }}"
+        vpc_id: "{{ vpc }}"
+        tags:
+            Name: DatabaseSGPostalSaude
+        rules:
+          - proto: tcp
+            from_port: 3306
+            to_port: 3306
+            group_name: "{{ Appsg.group_name }}"
+        state: present
+      register: DBsg
+      
+       
+    - name: RDS Subnet Group Postal Saude
+      rds_subnet_group:
+        region: "{{ awsregion }}"
+        state: present
+        name: DBsubnetPostalSaude
+        description: DB Subnet Group Postal Saude
+        subnets: "{{ subnetslist }}"
+    
+#    - name: Creating a Relational Database Service Postal Saude (RDS)
+#      rds:
+#        command: create
+#        aws_access_key: "{{ accessKey }}"
+#        aws_secret_key: "{{ secretKey }}"
+#        region: "{{ awsregion }}"
+#        subnet: DBsubnetPostalSaude
+#        db_engine: MySQL
+#        instance_name: dbpostalsaude
+#        instance_type: db.m4.large
+#        username: "{{ dbusername }}"
+#        password: "{{ dbpassword }}"
+#        size: 20
+#        vpc_security_groups: "{{ DBsg.group_id }}"
+#        multi_zone: yes
+#        wait: yes
+
+    - name: Creating a Relational Database Service Postal Saude Encrypted (RDS)
+      rds_instance:
+        id: DBPostalSaude
+#        aws_access_key: "{{ accessKey }}"
+#        aws_secret_key: "{{ secretKey }}"        
+        db_name: dbpostalsaude
+        db_subnet_group_name: DBsubnetPostalSaude   
+        region: "{{ awsregion }}"
+        state: present
+        engine: mysql
+        storage_encrypted: True
+        db_instance_class: db.m4.large
+        username: "{{ dbusername }}"
+        password: "{{ dbpassword }}"
+        vpc_security_group_ids: "{{ DBsg.group_id }}"
+        multi_az: yes
+        allocated_storage: 5
+
+    - name: Get database facts
+      local_action:
+        module: rds
+        command: facts
+#        aws_access_key: "{{ accessKey }}"
+#        aws_secret_key: "{{ secretKey }}"
+        region: "{{ awsregion }}"
+        instance_name: "DBPostalSaude"
+      register: rds
+
+    - name: Creating launch config
+      ec2_lc:
+#        aws_access_key: "{{ accessKey }}"
+#        aws_secret_key: "{{ secretKey }}"
+        region: "{{ awsregion }}"
+        key_name: "{{ keyname }}"
+        instance_type: "t2.large"
+        image_id: "{{ awsami }}"
+        security_groups: "{{ Appsg.group_name }}"
+        name: PostalSaudeConfig
+        instance_monitoring: yes
+        assign_public_ip: yes
+        user_data: "{{ data }}"
+        state: present
+
+    - name: Configuring AutoScaling
+      ec2_asg:
+#        aws_access_key: "{{ accessKey }}"
+#        aws_secret_key: "{{ secretKey }}"
+        region: "{{ awsregion }}"
+        name: PostalSaudeAutoscalingGroups
+        launch_config_name: PostalSaudeConfig
+        health_check_period: 0
+        health_check_type: EC2
+        replace_all_instances: yes
+        target_group_arns: "{{ elbtg.target_group_arn }}"
+        min_size: 1
+        max_size: 5
+        desired_capacity: 2
+        vpc_zone_identifier: "{{ subnetslist }}"
+        state: present
