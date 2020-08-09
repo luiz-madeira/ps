@@ -8,4 +8,9 @@ Pré-requisito:
 - AS/SK Amazon.
 - Configurar Variáveis.
 - Criar Keypair.
+
+# Instalar Ansible #
+
+yum -y update
+yum -y install ansible
  
