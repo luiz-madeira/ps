@@ -60,7 +60,6 @@
             ports:
             - 80
             cidr_ip: 0.0.0.0/0
-#            rule_desc: allow all on port 80
       register: elbsg
 
     - name: Creating Application ELB
