@@ -12,6 +12,7 @@ Pré-requisito:
 # Instalar Ansible #
 
 #/bin/bash <br />
+yum -y install epel-repo <br />
 yum -y update <br />
 yum -y install ansible
  
