@@ -1,10 +1,10 @@
 <html>
   <head>
-    <title>POC Postal Saude</title>
+    <title>Portal PHP</title>
     <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
   </head>
   <body>
-    <h1>POC Postal Saude</h1>
+    <h1>Portal PHP</h1>
     <p/>
     <?php
       // Print out the current data and tie
